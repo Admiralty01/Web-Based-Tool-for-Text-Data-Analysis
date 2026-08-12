@@ -1,0 +1,41 @@
+# Core Web API
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+pydantic==2.7.4
+pydantic-settings==2.3.4
+python-multipart==0.0.9
+email-validator==2.1.1
+
+# Relational Database
+SQLAlchemy==2.0.31
+psycopg2-binary==2.9.9
+
+# Authentication & Security
+passlib[bcrypt]==1.7.4
+python-jose[cryptography] ==3.3.0
+
+# Asynchronous Work Queue
+celery[redis]==5.4.0
+redis==5.0.7
+
+# Elasticsearch / Vector Database
+elasticsearch==8.14.0
+
+# Cloud Storage (S3-compatible)
+boto3==1.34.131
+
+# Preprocessing & NLP Pipeline
+spacy==3.7.5
+nltk==3.8.1
+langdetect==1.0.9
+
+# ML Models & Representations
+scikit-learn==1.5.0
+gensim==4.3.2
+sentence-transformers==3.0.1
+transformers==4.41.2
+torch==2.3.1 --index-url https://download.pytorch.org/whl/cpu
+
+# Testing
+pytest==8.2.2
+httpx==0.27.0

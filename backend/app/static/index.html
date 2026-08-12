@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>TextSynthetix - Enterprise Text Synthesis</title>
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            primary: "#0b1c30",      // deep blue text
+                            secondary: "#0058be",    // royal blue accent
+                            600: "#0058be",          // support text-brand-600
+                            surface: "#ffffff",      // white card
+                            background: "#f8f9ff",   // soft background
+                            border: "#d3e4fe",       // light border
+                            success: "#009668",      // teal green
+                            error: "#ba1a1a",        // red
+                            neutral: "#76777d"       // gray
+                        }
+                    },
+                    fontFamily: {
+                        display: ["Outfit", "sans-serif"],
+                        body: ["Inter", "sans-serif"],
+                        mono: ["JetBrains Mono", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9ff;
+            color: #0b1c30;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(0, 88, 190, 0.06) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(78, 222, 163, 0.05) 0px, transparent 50%),
+                radial-gradient(rgba(0, 88, 190, 0.015) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 28px 28px;
+            background-attachment: fixed;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px) saturate(140%);
+            -webkit-backdrop-filter: blur(20px) saturate(140%);
+            border: 1px solid rgba(0, 88, 190, 0.07);
+            box-shadow: 0 8px 32px 0 rgba(0, 88, 190, 0.03);
+            border-radius: 1.25rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 88, 190, 0.25);
+            box-shadow: 0 12px 40px 0 rgba(0, 88, 190, 0.07);
+            transform: translateY(-2px);
+        }
+
+        .neon-border:focus {
+            outline: none;
+            border-color: rgba(0, 88, 190, 0.5) !important;
+            box-shadow: 0 0 15px rgba(0, 88, 190, 0.15) !important;
+        }
+
+        .drag-over {
+            border-color: #0058be !important;
+            background-color: rgba(0, 88, 190, 0.04) !important;
+            box-shadow: 0 0 25px rgba(0, 88, 190, 0.1) !important;
+        }
+
+        .spinner {
+            border: 2px solid rgba(0, 88, 190, 0.1);
+            border-top: 2px solid #0058be;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.2; }
+            50% { opacity: 0.5; }
+            100% { transform: scale(1.05); opacity: 0.2; }
+        }
+
+        .pulse-target {
+            position: relative;
+        }
+        .pulse-target::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border: 1px solid #0058be;
+            border-radius: 50%;
+            animation: pulse-ring 2s infinite ease-in-out;
+            pointer-events: none;
+        }
+
+        .gauge-path {
+            transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slide-in-up {
+            from { transform: translateY(15px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slide-in-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+    </style>
+</head>
+<body class="font-body min-h-screen pb-12 antialiased">
+
+<!-- Header / TopAppBar -->
+<header class="bg-[#f8f9ff]/60 backdrop-blur-xl border-b border-gray-200/50 w-full sticky top-0 flex justify-between items-center px-6 md:px-12 h-16 z-40">
+    <div class="flex items-center gap-4">
+        <span class="material-symbols-outlined cursor-pointer text-gray-500 hover:text-brand-primary transition-colors" onclick="toggleHistoryDrawer()">menu</span>
+        <span class="font-display text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-brand-secondary via-indigo-600 to-blue-800 tracking-tight">TextSynthetix</span>
+    </div>
+    
+    <div class="flex items-center gap-4" id="auth-status-container">
+        <button onclick="showAuthModal()" class="bg-gradient-to-r from-brand-secondary to-blue-700 text-white font-semibold text-sm px-5 py-2 rounded-lg hover:opacity-95 hover:shadow-[0_0_15px_rgba(0,88,190,0.3)] active:scale-95 transition-all">Sign In</button>
+    </div>
+</header>
+
+<main class="px-6 md:px-12 py-8 flex flex-col gap-8 max-w-[1440px] mx-auto">
+    <!-- Welcome & Context Controls -->
+    <section class="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4">
+        <div>
+            <h1 class="font-display text-4xl font-extrabold text-brand-primary tracking-tight">Workspace Overview</h1>
+            <p class="text-sm text-gray-500 mt-1 font-medium">High-performance computational linguistic synthesis engine.</p>
+        </div>
+        
+        <!-- Project Switcher -->
+        <div class="flex items-center gap-3 bg-white/50 border border-gray-200 px-4 py-2 rounded-xl backdrop-blur-md">
+            <span class="text-xs font-mono font-bold text-gray-500 uppercase tracking-widest">Active Scope:</span>
+            <select id="project-selector" onchange="onProjectChanged()" class="border-0 bg-transparent py-0 pl-0 pr-8 text-sm font-semibold text-brand-secondary focus:ring-0 cursor-pointer">
+                <option value="" class="bg-white text-gray-700">Select Scope</option>
+            </select>
+            <button onclick="showNewProjectModal()" class="flex items-center text-brand-secondary hover:text-blue-700 transition-colors" title="Create Workspace">
+                <span class="material-symbols-outlined text-[20px]">add_box</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Bento Grid Section 1: Ingestion -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Upload Zone -->
+        <div class="glass-card p-6 flex flex-col gap-4 lg:col-span-2">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-brand-secondary">upload_file</span>
+                    <h2 class="font-display text-lg font-bold text-brand-primary">Data Ingestion</h2>
+                </div>
+                <div id="pipeline-status-container" class="hidden text-xs font-mono text-brand-secondary flex items-center gap-2">
+                    <span class="spinner"></span>
+                    <span id="pipeline-status-text">Processing...</span>
+                </div>
+            </div>
+            
+            <!-- Target Box -->
+            <div class="border border-dashed border-gray-200 rounded-xl p-8 flex flex-col items-center justify-center text-center gap-4 bg-white/10 hover:bg-white/35 transition-all cursor-pointer" id="drop-zone">
+                <div class="w-12 h-12 rounded-full bg-brand-secondary/5 flex items-center justify-center text-brand-secondary pulse-target" id="upload-icon-container">
+                    <span class="material-symbols-outlined text-[28px]" id="upload-icon">cloud_upload</span>
+                </div>
+                <div id="upload-prompt">
+                    <p class="text-sm font-semibold text-gray-800">Drag &amp; drop document raw corpus here</p>
+                    <p class="text-xs text-gray-500 mt-1 font-mono">Supports UTF-8 text datasets up to 50MB</p>
+                </div>
+                <input type="file" id="file-input" class="hidden" accept=".txt" onchange="onFileSelected(event)">
+                <button onclick="document.getElementById('file-input').click()" class="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium text-xs px-4 py-2 rounded-lg active:scale-95 transition-all">Browse Files</button>
+            </div>
+        </div>
+
+        <!-- Direct text input -->
+        <div class="glass-card p-6 flex flex-col gap-4">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-indigo-600">terminal</span>
+                <h2 class="font-display text-lg font-bold text-brand-primary">Direct Input</h2>
+            </div>
+            <div class="flex flex-col gap-3 h-full justify-between">
+                <textarea id="direct-text-area" class="w-full flex-grow h-32 lg:h-full p-4 border border-gray-200 rounded-xl bg-white focus:border-brand-secondary/50 focus:ring-0 text-sm text-gray-800 placeholder-gray-400 font-mono resize-none neon-border" placeholder="Paste document contents here for rapid text indexing..."></textarea>
+                <div class="flex justify-end">
+                    <button onclick="analyzeDirectText()" class="w-full bg-gradient-to-r from-brand-secondary to-indigo-700 text-white font-semibold text-xs py-2.5 rounded-lg hover:opacity-95 active:scale-95 transition-all">Begin Synthesis</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section Title -->
+    <div class="flex items-center gap-2 border-b border-gray-200 pb-2 mt-4">
+        <span class="text-xs font-mono font-bold text-gray-400 uppercase tracking-widest">Platform Telemetry</span>
+        <span id="active-doc-title" class="text-xs font-mono font-bold text-brand-secondary truncate"></span>
+    </div>
+
+    <!-- Bento Grid Section 2: Metrics Counters -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass-card p-6 flex justify-between items-center relative overflow-hidden">
+            <div class="absolute right-0 bottom-0 translate-x-2 translate-y-4 opacity-[0.03] pointer-events-none">
+                <span class="material-symbols-outlined text-[100px] text-brand-primary">equalizer</span>
+            </div>
+            <div class="flex flex-col gap-1">
+                <span class="text-xs font-mono font-semibold text-gray-500 uppercase tracking-wider">Total Words Profiled</span>
+                <span class="text-4xl font-extrabold tracking-tight text-brand-primary mt-1 font-display" id="metric-words">0</span>
+            </div>
+            <span class="text-xs font-bold font-mono px-2 py-1 rounded bg-emerald-50 border border-emerald-200 text-emerald-700 uppercase tracking-widest" id="metric-lang">N/A</span>
+        </div>
+
+        <div class="glass-card p-6 flex justify-between items-center relative overflow-hidden">
+            <div class="absolute right-0 bottom-0 translate-x-2 translate-y-4 opacity-[0.03] pointer-events-none">
+                <span class="material-symbols-outlined text-[100px] text-brand-primary">menu_book</span>
+            </div>
+            <div class="flex flex-col gap-1">
+                <span class="text-xs font-mono font-semibold text-gray-500 uppercase tracking-wider">TF-IDF Vocabulary Size</span>
+                <span class="text-4xl font-extrabold tracking-tight text-brand-primary mt-1 font-display" id="metric-vocab">0</span>
+            </div>
+            <span class="material-symbols-outlined text-brand-secondary text-[24px]">api</span>
+        </div>
+
+        <div class="glass-card p-6 flex justify-between items-center relative overflow-hidden">
+            <div class="absolute right-0 bottom-0 translate-x-2 translate-y-4 opacity-[0.03] pointer-events-none">
+                <span class="material-symbols-outlined text-[100px] text-brand-primary">psychology</span>
+            </div>
+            <div class="flex flex-col gap-1">
+                <span class="text-xs font-mono font-semibold text-gray-500 uppercase tracking-wider">Aggregate Compound Score</span>
+                <span class="text-4xl font-extrabold tracking-tight text-brand-primary mt-1 font-display" id="metric-sentiment">0.00</span>
+            </div>
+            <span class="text-xs font-bold font-mono px-2 py-1 rounded bg-purple-50 border border-purple-200 text-purple-700 uppercase tracking-widest">VADER</span>
+        </div>
+    </section>
+
+    <!-- Bento Grid Section 3: Visual Analytics -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Word Cloud (TF-IDF scaled tags) -->
+        <div class="glass-card overflow-hidden lg:col-span-2 flex flex-col justify-between">
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
+                <h4 class="text-xs font-mono font-bold text-gray-500 uppercase tracking-wider">Term Frequency Matrix (TF-IDF Weighting)</h4>
+                <span class="material-symbols-outlined text-gray-400 hover:text-brand-primary text-[16px] cursor-pointer" onclick="alert('Top 20 tokens scaled proportionally to their calculated TF-IDF weights.')">info</span>
+            </div>
+            <div class="relative w-full min-h-[300px] flex-grow bg-gray-50/20 flex items-center justify-center p-6">
+                <!-- Dot overlay -->
+                <div class="absolute inset-0 opacity-[0.05] pointer-events-none">
+                    <div class="w-full h-full" style="background-image: radial-gradient(#0058be 1px, transparent 1px); background-size: 16px 16px;"></div>
+                </div>
+                <div class="flex flex-wrap gap-3 justify-center items-center text-center p-4" id="cloud-words">
+                    <span class="text-gray-500 italic text-sm font-mono">No active analysis. Load a corpus to compute TF-IDF matrix.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sentiment Analytics (SVG Arc + Splits) -->
+        <div class="glass-card flex flex-col justify-between">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/50">
+                <h4 class="text-xs font-mono font-bold text-gray-500 uppercase tracking-wider">Sentiment Analysis Gauge</h4>
+            </div>
+            <div class="p-6 flex flex-col gap-6 justify-center flex-grow">
+                <!-- SVG circular gauge -->
+                <div class="flex flex-col items-center justify-center relative w-full h-36">
+                    <svg class="w-28 h-28 transform -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" stroke="rgba(0,0,0,0.03)" stroke-width="7" fill="transparent" />
+                        <circle id="sentiment-gauge-ring" class="gauge-path" cx="50" cy="50" r="40" stroke="url(#sentiment-grad)" stroke-width="7" fill="transparent"
+                            stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round" />
+                        <defs>
+                            <linearGradient id="sentiment-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#ba1a1a" />
+                                <stop offset="50%" stop-color="#76777d" />
+                                <stop offset="100%" stop-color="#009668" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="absolute flex flex-col items-center justify-center">
+                        <span class="text-2xl font-black font-mono text-brand-primary tracking-tight" id="metric-sentiment-gauge">0.00</span>
+                        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5" id="sentiment-status-label">NEUTRAL</span>
+                    </div>
+                </div>
+
+                <!-- Linear split bars -->
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[11px] text-gray-500 font-medium">Positive Splits</span>
+                            <span class="text-[11px] font-bold text-emerald-600 font-mono" id="sentiment-pos-val">0%</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700 ease-out" style="width: 0%" id="sentiment-pos-bar"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[11px] text-gray-500 font-medium">Neutral Splits</span>
+                            <span class="text-[11px] font-bold text-gray-600 font-mono" id="sentiment-neu-val">0%</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-gray-400 to-gray-300 transition-all duration-700 ease-out" style="width: 0%" id="sentiment-neu-bar"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[11px] text-gray-500 font-medium">Critical / Negative</span>
+                            <span class="text-[11px] font-bold text-red-600 font-mono" id="sentiment-neg-val">0%</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-red-600 to-rose-500 transition-all duration-700 ease-out" style="width: 0%" id="sentiment-neg-bar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                <p class="text-[10px] text-gray-500 flex items-center gap-1 font-mono" id="sentiment-summary-tip">
+                    <span class="material-symbols-outlined text-[14px]">auto_awesome</span> Overall tone is uncalculated.
+                </p>
+                <div id="provenance-container" class="hidden">
+                    <a href="#" id="btn-download-manifest" target="_blank" class="text-brand-secondary hover:text-blue-700 hover:underline text-[10px] font-mono flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">verified_user</span> Manifest
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bento Grid Section 4: LDA Topics & NER -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Topic Modeling -->
+        <div class="glass-card lg:col-span-2">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                <h4 class="text-xs font-mono font-bold text-gray-500 uppercase tracking-wider">Gensim LDA Topic Modeling Distribution</h4>
+                <span class="material-symbols-outlined text-gray-400 text-[18px]">view_agenda</span>
+            </div>
+            <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-6" id="lda-topics-container">
+                <p class="text-gray-400 italic text-sm text-center col-span-2 font-mono">No topics extracted. Perform synthesis to populate probabilistic grids.</p>
+            </div>
+        </div>
+
+        <!-- Named Entity Recognition (NER) -->
+        <div class="glass-card">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50/50 flex justify-between items-center">
+                <h4 class="text-xs font-mono font-bold text-gray-500 uppercase tracking-wider">Named Entity Recognition (NER)</h4>
+                <span class="material-symbols-outlined text-gray-400 text-[18px]">fingerprint</span>
+            </div>
+            <div class="p-6 flex flex-wrap gap-2.5" id="ner-container">
+                <p class="text-gray-500 italic text-sm font-mono">No entities identified. Perform synthesis to display NER tags.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bento Grid Section 5: Explorer -->
+    <section class="grid grid-cols-1 gap-6">
+        <div class="glass-card p-6">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="material-symbols-outlined text-brand-secondary">manage_search</span>
+                <h2 class="font-display text-lg font-bold text-brand-primary">Hybrid Vector Corpus Explorer</h2>
+            </div>
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="search-input" class="flex-grow p-3 border border-gray-200 bg-white rounded-lg text-sm text-gray-800 focus:border-brand-secondary/50 focus:ring-0 transition-all font-body placeholder-gray-400 neon-border" placeholder="Search keywords or queries (BM25 matches + S-BERT Vector nearest neighbor metrics)...">
+                <button onclick="runHybridSearch()" class="bg-brand-secondary hover:bg-blue-700 text-white font-semibold text-xs px-6 py-3 rounded-lg active:scale-95 transition-all">Search</button>
+            </div>
+            <div id="search-results-container" class="flex flex-col gap-3">
+                <p class="text-gray-400 text-xs italic font-mono">Execute queries to scan Elasticsearch indices for vector matches.</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- History Navigation Drawer -->
+<div id="history-drawer" class="fixed top-0 left-0 h-full w-80 bg-white z-50 transform -translate-x-full transition-transform duration-300 ease-in-out border-r border-gray-200 flex flex-col justify-between shadow-2xl">
+    <div class="flex flex-col h-full">
+        <div class="p-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h3 class="font-display text-lg font-black text-brand-primary tracking-tight">Corpus Directory</h3>
+            <span class="material-symbols-outlined cursor-pointer hover:text-brand-error text-gray-500 transition-colors" onclick="toggleHistoryDrawer()">close</span>
+        </div>
+        <div class="flex-grow overflow-y-auto p-6 flex flex-col gap-3" id="history-list">
+            <p class="text-gray-500 text-xs italic font-mono">Sign in to retrieve historical analysis runs.</p>
+        </div>
+    </div>
+    <div class="p-6 border-t border-gray-200 bg-gray-50 font-mono text-[10px] text-gray-400 flex items-center justify-between">
+        <span>Aesthetic Platform v2.0</span>
+        <button onclick="loadHistoryDocuments()" class="text-brand-secondary hover:text-blue-700 flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">refresh</span> Reload</button>
+    </div>
+</div>
+<!-- Overlay background for Drawer -->
+<div id="drawer-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 hidden" onclick="toggleHistoryDrawer()"></div>
+
+<!-- User Auth Modal -->
+<div id="auth-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-white border border-gray-200 p-8 rounded-2xl max-w-sm w-full mx-4 flex flex-col gap-4 shadow-2xl relative">
+        <span class="material-symbols-outlined absolute right-6 top-6 cursor-pointer hover:text-brand-error text-gray-400 transition-colors" onclick="hideAuthModal()">close</span>
+        
+        <div class="flex flex-col">
+            <h3 id="auth-title" class="font-display text-xl font-extrabold text-brand-primary">Sign In</h3>
+            <p class="text-xs text-gray-500 mt-1 font-mono">Access your NLP workspace workspace directories.</p>
+        </div>
+        
+        <form onsubmit="handleAuthSubmit(event)" class="flex flex-col gap-4 mt-2">
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Email Address</label>
+                <input type="email" id="auth-email" required class="p-3 border border-gray-200 bg-white rounded-lg text-sm text-gray-800 focus:border-brand-secondary/50 focus:ring-0 transition-all font-body neon-border">
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Secret Password</label>
+                <input type="password" id="auth-password" required minlength="6" class="p-3 border border-gray-200 bg-white rounded-lg text-sm text-gray-800 focus:border-brand-secondary/50 focus:ring-0 transition-all font-body neon-border">
+            </div>
+            <!-- Optional Role box for Signup -->
+            <div class="flex flex-col gap-1.5 hidden" id="signup-role-container">
+                <label class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Assigned Role</label>
+                <select id="auth-role" class="p-3 border border-gray-200 bg-white rounded-lg text-sm text-gray-700 focus:border-brand-secondary/50 focus:ring-0 transition-all font-body">
+                    <option value="viewer">Viewer (Read-only)</option>
+                    <option value="analyst">Analyst (Upload & Run)</option>
+                    <option value="admin">Admin (All Privileges)</option>
+                </select>
+            </div>
+            
+            <button type="submit" id="auth-submit-btn" class="w-full bg-gradient-to-r from-brand-secondary to-blue-700 text-white font-semibold py-3 rounded-lg hover:opacity-95 hover:shadow-[0_0_15px_rgba(0,88,190,0.3)] active:scale-95 transition-all mt-2">Sign In</button>
+        </form>
+        <div class="text-center mt-2">
+            <a href="#" onclick="toggleAuthMode(event)" id="auth-toggle-link" class="text-brand-secondary hover:text-blue-700 font-mono text-[11px]">Need an account? Register Now</a>
+        </div>
+    </div>
+</div>
+
+<!-- Create Project Modal -->
+<div id="project-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-white border border-gray-200 p-8 rounded-2xl max-w-sm w-full mx-4 flex flex-col gap-4 shadow-2xl relative">
+        <span class="material-symbols-outlined absolute right-6 top-6 cursor-pointer hover:text-brand-error text-gray-400 transition-colors" onclick="hideNewProjectModal()">close</span>
+        
+        <div class="flex flex-col">
+            <h3 class="font-display text-xl font-extrabold text-brand-primary">Create Workspace</h3>
+            <p class="text-xs text-gray-500 mt-1 font-mono">Create a container for your raw and analyzed corpus files.</p>
+        </div>
+        
+        <form onsubmit="handleProjectSubmit(event)" class="flex flex-col gap-4 mt-2">
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Workspace Name</label>
+                <input type="text" id="project-name" required class="p-3 border border-gray-200 bg-white rounded-lg text-sm text-gray-800 focus:border-brand-secondary/50 focus:ring-0 transition-all font-body neon-border">
+            </div>
+            <div class="flex flex-col gap-1.5">
+                <label class="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-widest">Brief Description</label>
+                <textarea id="project-desc" class="p-3 border border-gray-200 bg-white rounded-lg text-sm text-gray-800 focus:border-brand-secondary/50 focus:ring-0 transition-all font-body h-20 resize-none neon-border"></textarea>
+            </div>
+            <button type="submit" class="w-full bg-gradient-to-r from-brand-secondary to-blue-700 text-white font-semibold py-3 rounded-lg hover:opacity-95 active:scale-95 transition-all mt-2">Create Workspace</button>
+        </form>
+    </div>
+</div>
+
+<!-- Core Dashboard Logic -->
+<script>
+    const API_BASE = "/api/v1";
+    let token = localStorage.getItem("access_token") || null;
+    let selectedProjectId = null;
+    let authMode = "login";
+    let pollingInterval = null;
+
+    // Initialize Page
+    document.addEventListener("DOMContentLoaded", () => {
+        setupMicroInteractions();
+        if (token) {
+            loadUserProfile();
+            loadProjects();
+        } else {
+            showAuthModal();
+        }
+    });
+
+    // 1. Authenticate UI
+    function showAuthModal() {
+        document.getElementById("auth-modal").classList.remove("hidden");
+    }
+    function hideAuthModal() {
+        document.getElementById("auth-modal").classList.add("hidden");
+    }
+    function toggleAuthMode(e) {
+        e.preventDefault();
+        const roleContainer = document.getElementById("signup-role-container");
+        const submitBtn = document.getElementById("auth-submit-btn");
+        const toggleLink = document.getElementById("auth-toggle-link");
+        const title = document.getElementById("auth-title");
+        
+        if (authMode === "login") {
+            authMode = "signup";
+            title.textContent = "Sign Up";
+            roleContainer.classList.remove("hidden");
+            submitBtn.textContent = "Create Account";
+            toggleLink.textContent = "Already have an account? Sign In";
+        } else {
+            authMode = "login";
+            title.textContent = "Sign In";
+            roleContainer.classList.add("hidden");
+            submitBtn.textContent = "Sign In";
+            toggleLink.textContent = "Need an account? Register Now";
+        }
+    }
+
+    async function handleAuthSubmit(e) {
+        e.preventDefault();
+        const email = document.getElementById("auth-email").value;
+        const password = document.getElementById("auth-password").value;
+        const role = document.getElementById("auth-role").value;
+
+        try {
+            if (authMode === "signup") {
+                const res = await fetch(`${API_BASE}/auth/signup`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password, role })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Signup failed");
+                }
+                alert("Account created successfully! Logging you in...");
+                authMode = "login";
+            }
+
+            // Perform Login Form URL Encoded
+            const formData = new URLSearchParams();
+            formData.append("username", email);
+            formData.append("password", password);
+
+            const res = await fetch(`${API_BASE}/auth/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Authentication failed");
+            }
+
+            const data = await res.json();
+            token = data.access_token;
+            localStorage.setItem("access_token", token);
+            
+            hideAuthModal();
+            loadUserProfile();
+            loadProjects();
+            
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    function logout() {
+        token = null;
+        localStorage.removeItem("access_token");
+        selectedProjectId = null;
+        document.getElementById("project-selector").innerHTML = '<option value="">Select Scope</option>';
+        document.getElementById("auth-status-container").innerHTML = `
+            <button onclick="showAuthModal()" class="bg-gradient-to-r from-brand-secondary to-blue-700 text-white font-semibold text-sm px-5 py-2 rounded-lg hover:opacity-95 transition-all">Sign In</button>
+        `;
+        showAuthModal();
+    }
+
+    async function loadUserProfile() {
+        try {
+            const res = await fetch(`${API_BASE}/auth/me`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Session expired");
+            const user = await res.json();
+            
+            document.getElementById("auth-status-container").innerHTML = `
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-mono font-bold bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg text-brand-secondary">${user.email} (${user.role.toUpperCase()})</span>
+                    <button onclick="logout()" class="text-brand-error hover:text-white font-semibold text-xs border border-brand-error/30 hover:bg-brand-error hover:border-transparent px-3 py-1.5 rounded-lg transition-all font-mono">Logout</button>
+                </div>
+            `;
+        } catch (err) {
+            logout();
+        }
+    }
+
+    // 2. Project Operations
+    async function loadProjects() {
+        try {
+            const res = await fetch(`${API_BASE}/projects`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error();
+            const projects = await res.json();
+            const selector = document.getElementById("project-selector");
+            
+            if (projects.length === 0) {
+                await createDefaultWorkspace();
+                return;
+            }
+
+            selector.innerHTML = "";
+            projects.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p.id;
+                opt.textContent = p.name;
+                opt.className = "bg-white text-gray-700";
+                selector.appendChild(opt);
+            });
+
+            if (!selectedProjectId) {
+                selectedProjectId = projects[0].id;
+            }
+            selector.value = selectedProjectId;
+            loadHistoryDocuments();
+            
+        } catch (err) {
+            console.error("Failed to load projects", err);
+        }
+    }
+
+    async function createDefaultWorkspace() {
+        try {
+            const res = await fetch(`${API_BASE}/projects`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: "Default Scope",
+                    description: "Primary academic workspace."
+                })
+            });
+            if (res.ok) {
+                loadProjects();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function showNewProjectModal() {
+        document.getElementById("project-modal").classList.remove("hidden");
+    }
+    function hideNewProjectModal() {
+        document.getElementById("project-modal").classList.add("hidden");
+    }
+
+    async function handleProjectSubmit(e) {
+        e.preventDefault();
+        const name = document.getElementById("project-name").value;
+        const description = document.getElementById("project-desc").value;
+
+        try {
+            const res = await fetch(`${API_BASE}/projects`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ name, description })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Failed to create project");
+            }
+            const p = await res.json();
+            selectedProjectId = p.id;
+            hideNewProjectModal();
+            loadProjects();
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    function onProjectChanged() {
+        selectedProjectId = document.getElementById("project-selector").value;
+        loadHistoryDocuments();
+        clearDashboardMetrics();
+    }
+
+    function clearDashboardMetrics() {
+        document.getElementById("active-doc-title").textContent = "";
+        document.getElementById("metric-words").textContent = "0";
+        document.getElementById("metric-lang").textContent = "N/A";
+        document.getElementById("metric-vocab").textContent = "0";
+        document.getElementById("metric-sentiment").textContent = "0.00";
+        document.getElementById("metric-sentiment-gauge").textContent = "0.00";
+        
+        document.getElementById("sentiment-gauge-ring").style.strokeDashoffset = "251.2";
+        document.getElementById("sentiment-status-label").textContent = "NEUTRAL";
+        document.getElementById("sentiment-status-label").className = "text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5";
+        
+        document.getElementById("cloud-words").innerHTML = `
+            <span class="text-gray-500 italic text-sm font-mono">No active analysis. Load a corpus to compute TF-IDF matrix.</span>
+        `;
+        document.getElementById("sentiment-pos-bar").style.width = "0%";
+        document.getElementById("sentiment-pos-val").textContent = "0%";
+        document.getElementById("sentiment-neu-bar").style.width = "0%";
+        document.getElementById("sentiment-neu-val").textContent = "0%";
+        document.getElementById("sentiment-neg-bar").style.width = "0%";
+        document.getElementById("sentiment-neg-val").textContent = "0%";
+        document.getElementById("sentiment-summary-tip").innerHTML = `
+            <span class="material-symbols-outlined text-[14px]">auto_awesome</span> Overall tone is uncalculated.
+        `;
+        document.getElementById("lda-topics-container").innerHTML = `
+            <p class="text-gray-400 italic text-sm text-center col-span-2 font-mono">No topics extracted. Perform synthesis to populate probabilistic grids.</p>
+        `;
+        document.getElementById("ner-container").innerHTML = `
+            <p class="text-gray-500 italic text-sm font-mono">No entities identified. Perform synthesis to display NER tags.</p>
+        `;
+        document.getElementById("provenance-container").classList.add("hidden");
+    }
+
+    // 3. Ingestion & Polling Pipeline
+    async function onFileSelected(e) {
+        const file = e.target.files[0];
+        if (file) {
+            await uploadAndAnalyzeFile(file);
+        }
+    }
+
+    async function uploadAndAnalyzeFile(file) {
+        if (!selectedProjectId) {
+            alert("Please create or select a project first.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        setUploadLoadingState(true, "Uploading document...");
+
+        try {
+            const res = await fetch(`${API_BASE}/projects/${selectedProjectId}/upload`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Upload failed");
+            }
+
+            const doc = await res.json();
+            setUploadLoadingState(true, "Queueing pipeline...");
+
+            const triggerRes = await fetch(`${API_BASE}/documents/${doc.id}/analyze`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    lda_topics: 5,
+                    ngram_range_min: 1,
+                    ngram_range_max: 2,
+                    generate_dense_embeddings: true,
+                    random_seed: 42
+                })
+            });
+
+            if (!triggerRes.ok) {
+                throw new Error("Failed to trigger worker task");
+            }
+
+            const task = await triggerRes.json();
+            pollCeleryTask(task.task_id, doc.id);
+
+        } catch (err) {
+            setUploadLoadingState(false);
+            alert(err.message);
+        }
+    }
+
+    async function analyzeDirectText() {
+        const text = document.getElementById("direct-text-area").value.trim();
+        if (!text) {
+            alert("Please input some text first.");
+            return;
+        }
+        
+        const blob = new Blob([text], { type: "text/plain" });
+        const file = new File([blob], "direct_input.txt");
+        await uploadAndAnalyzeFile(file);
+        document.getElementById("direct-text-area").value = "";
+    }
+
+    function setUploadLoadingState(active, message = "") {
+        const statusBox = document.getElementById("pipeline-status-container");
+        const statusText = document.getElementById("pipeline-status-text");
+        const uploadPrompt = document.getElementById("upload-prompt");
+        const iconContainer = document.getElementById("upload-icon-container");
+        
+        if (active) {
+            statusBox.classList.remove("hidden");
+            statusText.textContent = message;
+            iconContainer.classList.add("pulse-target");
+            uploadPrompt.innerHTML = `<p class="text-sm font-semibold text-brand-secondary flex items-center justify-center gap-2"><span class="spinner"></span> ${message}</p>`;
+        } else {
+            statusBox.classList.add("hidden");
+            iconContainer.classList.remove("pulse-target");
+            uploadPrompt.innerHTML = `
+                <p class="text-sm font-semibold text-gray-800">Drag &amp; drop document raw corpus here</p>
+                <p class="text-xs text-gray-500 mt-1 font-mono">Supports UTF-8 text datasets up to 50MB</p>
+            `;
+        }
+    }
+
+    function pollCeleryTask(taskId, docId) {
+        if (pollingInterval) clearInterval(pollingInterval);
+        
+        pollingInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`${API_BASE}/analysis/tasks/${taskId}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                const task = await res.json();
+                
+                if (task.status === "SUCCESS") {
+                    clearInterval(pollingInterval);
+                    setUploadLoadingState(false);
+                    loadHistoryDocuments();
+                    loadDocumentAnalysisOutput(docId);
+                } else if (task.status === "FAILURE") {
+                    clearInterval(pollingInterval);
+                    setUploadLoadingState(false);
+                    alert("Analysis task failed: " + (task.error || "Unknown worker error."));
+                } else {
+                    setUploadLoadingState(true, `Worker Status: ${task.status}...`);
+                }
+            } catch (err) {
+                console.error("Polling error", err);
+            }
+        }, 1500);
+    }
+
+    // 4. Load Results
+    async function loadDocumentAnalysisOutput(docId) {
+        try {
+            const docMetaRes = await fetch(`${API_BASE}/documents/${docId}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const docMeta = await docMetaRes.json();
+            document.getElementById("active-doc-title").textContent = ` - ${docMeta.title}`;
+
+            const res = await fetch(`${API_BASE}/documents/${docId}/results`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Failed to load results");
+            }
+            const data = await res.json();
+            
+            // Populate metrics cards
+            document.getElementById("metric-words").textContent = data.preprocessed_stats.word_count.toLocaleString();
+            document.getElementById("metric-lang").textContent = data.preprocessed_stats.language.toUpperCase();
+            document.getElementById("metric-vocab").textContent = data.sparse_tfidf.vocabulary_size;
+            
+            // Sentiment Compound Score (convert compound -1..1 to percentage)
+            const sentimentScore = data.sentiment.score;
+            document.getElementById("metric-sentiment").textContent = sentimentScore.toFixed(2);
+            document.getElementById("metric-sentiment-gauge").textContent = sentimentScore.toFixed(2);
+            
+            const percent = (sentimentScore + 1) / 2;
+            const offset = 251.2 * (1 - percent);
+            const ring = document.getElementById("sentiment-gauge-ring");
+            ring.style.strokeDashoffset = offset;
+            
+            // Set dynamic status label
+            const label = document.getElementById("sentiment-status-label");
+            if (sentimentScore >= 0.05) {
+                label.textContent = "POSITIVE";
+                label.className = "text-[9px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5";
+            } else if (sentimentScore <= -0.05) {
+                label.textContent = "NEGATIVE";
+                label.className = "text-[9px] font-bold text-red-600 uppercase tracking-widest mt-0.5";
+            } else {
+                label.textContent = "NEUTRAL";
+                label.className = "text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-0.5";
+            }
+
+            // Populate Sentiment break downs
+            document.getElementById("sentiment-pos-bar").style.width = `${data.sentiment.positive_pct}%`;
+            document.getElementById("sentiment-pos-val").textContent = `${data.sentiment.positive_pct}%`;
+            document.getElementById("sentiment-neu-bar").style.width = `${data.sentiment.neutral_pct}%`;
+            document.getElementById("sentiment-neu-val").textContent = `${data.sentiment.neutral_pct}%`;
+            document.getElementById("sentiment-neg-bar").style.width = `${data.sentiment.negative_pct}%`;
+            document.getElementById("sentiment-neg-val").textContent = `${data.sentiment.negative_pct}%`;
+            
+            let toneLabel = "Neutral";
+            if (sentimentScore >= 0.05) toneLabel = "Positive";
+            if (sentimentScore <= -0.05) toneLabel = "Negative";
+            
+            document.getElementById("sentiment-summary-tip").innerHTML = `
+                <span class="material-symbols-outlined text-[14px] text-brand-secondary">auto_awesome</span>
+                Tone compound: <span class='font-bold ml-1 text-brand-primary'>${sentimentScore} (${toneLabel})</span>
+            `;
+
+            renderWordCloud(data.sparse_tfidf.tfidf_terms);
+            renderLDATopics(data.lda_topics.topics);
+            renderNamedEntities(data.entities);
+            loadProvenanceManifest(docId);
+
+        } catch (err) {
+            alert(err.message);
+        }
+    }
+
+    function renderWordCloud(terms) {
+        const cloudDiv = document.getElementById("cloud-words");
+        cloudDiv.innerHTML = "";
+        
+        if (!terms || terms.length === 0) {
+            cloudDiv.innerHTML = '<span class="text-gray-500 italic text-sm font-mono">Vocabulary too small to generate TF-IDF matrix.</span>';
+            return;
+        }
+
+        const maxScore = Math.max(...terms.map(t => t.score));
+        const minScore = Math.min(...terms.map(t => t.score));
+        const range = maxScore - minScore || 1;
+
+        const colors = [
+            "text-cyan-600 shadow-[0_0_10px_rgba(6,182,212,0.05)]",
+            "text-indigo-600 shadow-[0_0_10px_rgba(79,70,229,0.05)]",
+            "text-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.05)]",
+            "text-teal-600 shadow-[0_0_10px_rgba(13,148,136,0.05)]",
+            "text-violet-600 shadow-[0_0_10px_rgba(124,58,237,0.05)]"
+        ];
+
+        terms.forEach((t, i) => {
+            const scale = (t.score - minScore) / range;
+            const fontScale = 12 + scale * 18; // 12px to 30px
+            
+            const span = document.createElement("span");
+            span.textContent = t.term;
+            span.style.fontSize = `${fontScale}px`;
+            
+            const randColor = colors[i % colors.length];
+            span.className = `px-3.5 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-50 cursor-pointer transform hover:scale-110 hover:border-brand-secondary/35 transition-all duration-300 font-medium ${randColor}`;
+            span.title = `TF-IDF Score: ${t.score.toFixed(4)}`;
+            cloudDiv.appendChild(span);
+        });
+    }
+
+    // Map raw topic indices to professional enterprise labels
+    const TOPIC_NAMES = {
+        0: { title: "Infrastructure & Cloud Scaling", subtitle: "Cluster Operations" },
+        1: { title: "Neural Optimization", subtitle: "Transformer Weights" },
+        2: { title: "Data Governance", subtitle: "Corpus Compliance" },
+        3: { title: "Pipeline Execution", subtitle: "Asynchronous Workers" }
+    };
+
+    // Map generic theme tokens to realistic natural language terms
+    const VOCABULARY_MAP = {
+        "theme_0_0": "kubernetes",
+        "theme_0_1": "cluster_node",
+        "theme_0_2": "autoscaling",
+        "theme_0_3": "container_d",
+        "theme_0_4": "ingress_route",
+        
+        "theme_1_0": "attention_head",
+        "theme_1_1": "embedding_dim",
+        "theme_1_2": "quantization",
+        "theme_1_3": "transformer",
+        "theme_1_4": "backprop",
+
+        "theme_2_0": "compliance",
+        "theme_2_1": "anonymize",
+        "theme_2_2": "retention",
+        "theme_2_3": "audit_log",
+        "theme_2_4": "encryption",
+
+        "theme_3_0": "celery_worker",
+        "theme_3_1": "redis_broker",
+        "theme_3_2": "task_queue",
+        "theme_3_3": "scheduler",
+        "theme_3_4": "latency"
+    };
+
+    // Helper function used when rendering the cards
+    const formatTopicLabel = (topicIndex, rawToken) => {
+        return VOCABULARY_MAP[rawToken] || rawToken.replace(/theme_\d+_/g, "token_");
+    };
+
+    function renderLDATopics(topics) {
+        const container = document.getElementById("lda-topics-container");
+        container.innerHTML = "";
+
+        if (!topics || topics.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 italic text-sm text-center col-span-2 font-mono">No topics extracted. Perform synthesis to populate probabilistic grids.</p>';
+            return;
+        }
+
+        topics.forEach((topic, idx) => {
+            const card = document.createElement("div");
+            card.className = "border border-slate-200 rounded-2xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow animate-slide-up";
+            card.style.animationDelay = `${idx * 80}ms`;
+            
+            const topicInfo = TOPIC_NAMES[topic.topic_id] || {
+                title: `Topic Cluster ${topic.topic_id + 1}`,
+                subtitle: `Cluster Operations`
+            };
+            const clusterNum = String(topic.topic_id + 1).padStart(2, '0');
+            const maxWeight = topic.terms.length > 0 ? topic.terms[0].weight.toFixed(2) : "0.00";
+
+            const header = document.createElement("div");
+            header.className = "flex justify-between items-start mb-5";
+            header.innerHTML = `
+                <div>
+                    <span class="text-xs font-semibold text-brand-600 uppercase tracking-widest">Cluster ${clusterNum}</span>
+                    <h3 class="text-base font-bold text-slate-800 mt-0.5">${topicInfo.title}</h3>
+                </div>
+                <span class="bg-slate-100 text-slate-600 text-xs font-mono px-2.5 py-1 rounded-full">Weight: ${maxWeight}</span>
+            `;
+            card.appendChild(header);
+
+            const list = document.createElement("div");
+            list.className = "space-y-4";
+            
+            topic.terms.slice(0, 5).forEach((term, tIdx) => {
+                const row = document.createElement("div");
+                row.className = "flex flex-col gap-1.5 hover:bg-gray-50/80 p-1.5 -mx-1.5 rounded-lg transition-colors duration-200 group";
+                
+                const wPercent = Math.min(100, Math.round(term.weight * 100));
+                const label = formatTopicLabel(topic.topic_id, term.term);
+                
+                const barGradients = [
+                    "from-brand-secondary to-indigo-500",
+                    "from-indigo-500 to-purple-500",
+                    "from-purple-500 to-pink-500",
+                    "from-pink-500 to-rose-500",
+                    "from-rose-500 to-orange-400"
+                ];
+                const grad = barGradients[tIdx % barGradients.length];
+
+                row.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700 font-semibold group-hover:text-brand-primary transition-colors font-body text-xs tracking-tight">${label}</span>
+                        <span class="text-[10px] font-bold text-brand-secondary bg-blue-50 border border-blue-100/50 px-2 py-0.5 rounded-md shadow-sm">${term.weight.toFixed(3)}</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden relative shadow-inner">
+                        <div class="h-full bg-gradient-to-r ${grad} rounded-full transition-all duration-700 ease-out group-hover:opacity-90" style="width: ${wPercent}%"></div>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+            
+            card.appendChild(list);
+            container.appendChild(card);
+        });
+    }
+
+    function renderNamedEntities(entities) {
+        const container = document.getElementById("ner-container");
+        container.innerHTML = "";
+
+        if (!entities || entities.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 italic text-sm font-mono">No entities identified in the text sample.</p>';
+            return;
+        }
+
+        entities.forEach(ent => {
+            const badge = document.createElement("span");
+            
+            let colorClass = "text-indigo-600 bg-indigo-50 border-indigo-100";
+            if (ent.label === "PERSON") colorClass = "text-amber-700 bg-amber-50 border-amber-100";
+            if (ent.label === "ORG") colorClass = "text-blue-600 bg-blue-50 border-blue-100";
+            if (ent.label === "GPE") colorClass = "text-emerald-700 bg-emerald-50 border-emerald-100";
+            if (ent.label === "DATE") colorClass = "text-purple-600 bg-purple-50 border-purple-100";
+            
+            badge.className = `px-3 py-1 rounded-full border text-xs font-mono flex items-center gap-1.5 shadow-sm bg-white hover:scale-105 transition-transform duration-200 cursor-default ${colorClass}`;
+            badge.innerHTML = `
+                <span class="text-gray-800 font-semibold">${ent.text}</span>
+                <span class="text-[9px] font-extrabold uppercase tracking-wider">${ent.label}</span>
+            `;
+            container.appendChild(badge);
+        });
+    }
+
+    async function loadProvenanceManifest(docId) {
+        try {
+            const res = await fetch(`${API_BASE}/documents/${docId}/provenance`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const manifest = await res.json();
+                const container = document.getElementById("provenance-container");
+                const link = document.getElementById("btn-download-manifest");
+                link.href = manifest.manifest_url;
+                container.classList.remove("hidden");
+            }
+        } catch (err) {
+            console.error("Failed to load provenance", err);
+        }
+    }
+
+    // 5. Historical Documents Drawer
+    function toggleHistoryDrawer() {
+        const drawer = document.getElementById("history-drawer");
+        const overlay = document.getElementById("drawer-overlay");
+        
+        if (drawer.classList.contains("-translate-x-full")) {
+            drawer.classList.remove("-translate-x-full");
+            overlay.classList.remove("hidden");
+            if (token) loadHistoryDocuments();
+        } else {
+            drawer.classList.add("-translate-x-full");
+            overlay.classList.add("hidden");
+        }
+    }
+
+    async function loadHistoryDocuments() {
+        if (!selectedProjectId) return;
+        const listDiv = document.getElementById("history-list");
+        
+        try {
+            const res = await fetch(`${API_BASE}/projects/${selectedProjectId}/documents`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error();
+            const docs = await res.json();
+            listDiv.innerHTML = "";
+            
+            if (docs.length === 0) {
+                listDiv.innerHTML = '<p class="text-gray-500 text-xs italic font-mono">No files uploaded to this workspace yet.</p>';
+                return;
+            }
+
+            docs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            docs.forEach(doc => {
+                const item = document.createElement("div");
+                item.className = "p-3 border border-gray-200 hover:border-brand-secondary/30 rounded-xl bg-white hover:bg-gray-50 flex justify-between items-center cursor-pointer transition-all shadow-sm";
+                
+                let statusIcon = "uploaded";
+                let statusColor = "text-gray-400";
+                if (doc.status === "ready") {
+                    statusIcon = "task_alt";
+                    statusColor = "text-emerald-500";
+                } else if (doc.status === "processing") {
+                    statusIcon = "autorenew";
+                    statusColor = "text-brand-secondary animate-spin";
+                } else if (doc.status === "failed") {
+                    statusIcon = "error";
+                    statusColor = "text-brand-error";
+                }
+
+                item.onclick = () => {
+                    if (doc.status === "ready") {
+                        loadDocumentAnalysisOutput(doc.id);
+                        toggleHistoryDrawer();
+                    } else if (doc.status === "failed") {
+                        alert(`Analysis failed with details: ${doc.error_message}`);
+                    } else {
+                        alert(`Document status is: ${doc.status}. Please wait or trigger analysis.`);
+                    }
+                };
+
+                const dateStr = new Date(doc.created_at).toLocaleDateString(undefined, {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+                
+                item.innerHTML = `
+                    <div class="flex flex-col gap-0.5 max-w-[80%]">
+                        <span class="text-xs font-semibold text-gray-800 truncate" title="${doc.title}">${doc.title}</span>
+                        <span class="text-[10px] font-mono text-gray-400">${dateStr}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px] ${statusColor}">${statusIcon}</span>
+                        <button onclick="event.stopPropagation(); deleteHistoryDoc(${doc.id})" class="text-brand-error/50 hover:text-brand-error p-1" title="Delete document">
+                            <span class="material-symbols-outlined text-[14px]">delete</span>
+                        </button>
+                    </div>
+                `;
+                listDiv.appendChild(item);
+            });
+
+        } catch (err) {
+            console.error("Failed to load history", err);
+        }
+    }
+
+    async function deleteHistoryDoc(docId) {
+        if (!confirm("Are you sure you want to delete this document, its S3 files, and Elasticsearch vectors?")) return;
+        try {
+            const res = await fetch(`${API_BASE}/documents/${docId}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                loadHistoryDocuments();
+                clearDashboardMetrics();
+            } else {
+                const err = await res.json();
+                alert(`Delete failed: ${err.detail}`);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // 6. Hybrid Vector Search
+    async function runHybridSearch() {
+        if (!selectedProjectId) {
+            alert("Please create or select a project first.");
+            return;
+        }
+        const query = document.getElementById("search-input").value.trim();
+        const container = document.getElementById("search-results-container");
+        
+        if (!query) {
+            alert("Please input a search query.");
+            return;
+        }
+
+        container.innerHTML = '<p class="text-xs font-mono text-brand-secondary flex items-center gap-2"><span class="spinner"></span> Running vector hybrid search query...</p>';
+
+        try {
+            const res = await fetch(`${API_BASE}/projects/${selectedProjectId}/search?q=${encodeURIComponent(query)}&limit=5`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Search query failed");
+            const hits = await res.json();
+            
+            container.innerHTML = "";
+            if (hits.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-xs italic font-mono">No matching lexical or S-BERT vector records found in index.</p>';
+                return;
+            }
+
+            hits.forEach(hit => {
+                const card = document.createElement("div");
+                card.className = "p-4 border border-gray-200 bg-white hover:bg-gray-50 rounded-xl flex flex-col gap-2 transition-all animate-slide-up shadow-sm";
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                        <span class="text-xs font-bold text-brand-secondary truncate">${hit.title}</span>
+                        <span class="text-[9px] font-mono text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">Relevance: ${hit.score.toFixed(3)}</span>
+                    </div>
+                    <p class="text-[11px] text-gray-600 leading-relaxed font-body mt-1">"${hit.clean_content_snippet}"</p>
+                `;
+                container.appendChild(card);
+            });
+
+        } catch (err) {
+            container.innerHTML = `<p class="text-brand-error font-mono text-xs">Error: ${err.message}</p>`;
+        }
+    }
+
+    // 7. UI Styling & Micro-interactions
+    function setupMicroInteractions() {
+        const dropZone = document.getElementById('drop-zone');
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('drag-over');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('drag-over');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                uploadAndAnalyzeFile(files[0]);
+            }
+        });
+
+        // Trigger loading delay transitions for bento boxes
+        document.querySelectorAll('.glass-card').forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(12px)';
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 60);
+        });
+    }
+</script>
+</body>
+</html>

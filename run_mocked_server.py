@@ -322,6 +322,9 @@ if __name__ == "__main__":
     print(" - Background Workers: Running synchronously in-thread")
     print(" - Host Environment: Python 3.14 native execution")
     print("=" * 80)
-    print(" Dashboard starting at: http://127.0.0.1:8000/")
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", 8000))
+    print(f" Dashboard starting at: http://{host}:{port}/")
     print("=" * 80)
-    uvicorn.run("run_mocked_server:fastapi_app", host="127.0.0.1", port=8000, reload=False)
+    uvicorn.run("run_mocked_server:fastapi_app", host=host, port=port, reload=False)
+

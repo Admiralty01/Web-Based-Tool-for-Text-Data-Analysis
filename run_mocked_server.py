@@ -30,10 +30,15 @@ mock_modules = [
     "sentence_transformers",
     "elasticsearch",
     "boto3",
-    "botocore.exceptions"
+    "botocore.exceptions",
+    "numpy",
+    "sklearn",
+    "sklearn.feature_extraction",
+    "sklearn.feature_extraction.text"
 ]
 for mod_name in mock_modules:
     sys.modules[mod_name] = MagicMock()
+
 
 # Inject Celery mocks directly in sys.modules
 mock_celery = MagicMock()

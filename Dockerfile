@@ -4,7 +4,8 @@ WORKDIR /app
 
 # Install dependencies
 COPY requirements_mock.txt .
-RUN pip install --no-cache-dir -r requirements_mock.txt
+RUN pip install --no-cache-dir -r requirements_mock.txt \
+    && python -m spacy download en_core_web_sm
 
 # Copy application files
 COPY . .
@@ -12,5 +13,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Start mock server
-CMD ["python", "run_mocked_server.py"]
+# Start app server
+CMD ["python", "app_server.py"]

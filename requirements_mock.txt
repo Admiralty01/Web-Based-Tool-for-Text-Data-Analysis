@@ -7,4 +7,7 @@ passlib[bcrypt]==1.7.4
 python-jose[cryptography]==3.3.0
 SQLAlchemy==2.0.31
 email-validator==2.1.1
-
+psycopg2-binary>=2.9.9
+numpy==1.26.4
+scikit-learn==1.5.0
+spacy==3.7.5

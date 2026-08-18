@@ -2,10 +2,21 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from app.core.config import settings
 
+# Handle postgres scheme deprecated in SQLAlchemy 1.4+
+db_url = settings.DATABASE_URL
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+# Handle SQLite threading check
+connect_args = {}
+if db_url.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+
 # Create engine with pool pre-ping to ensure active connection check
 engine = create_engine(
-    settings.DATABASE_URL, 
-    pool_pre_ping=True
+    db_url, 
+    pool_pre_ping=True,
+    connect_args=connect_args
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
